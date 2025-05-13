@@ -141,6 +141,24 @@
         let activeStateFilter = 'all';
         let infoWindow;
         let currentZoom = 7;
+        
+        // Define state coordinates globally
+        const stateCoordinates = {
+            'JOHOR': {lat: 1.9344, lng: 103.3587},
+            'KEDAH': {lat: 6.1184, lng: 100.3685},
+            'KELANTAN': {lat: 5.3117, lng: 102.1386},
+            'MELAKA': {lat: 2.1896, lng: 102.2501},
+            'NEGERI SEMBILAN': {lat: 2.7258, lng: 101.9424},
+            'PAHANG': {lat: 3.8077, lng: 102.4955},
+            'PULAU PINANG': {lat: 5.4141, lng: 100.3288},
+            'PERAK': {lat: 4.5921, lng: 101.0901},
+            'PERLIS': {lat: 6.4449, lng: 100.2048},
+            'SELANGOR': {lat: 3.0738, lng: 101.5183},
+            'TERENGGANU': {lat: 5.3117, lng: 103.1324},
+            'SABAH': {lat: 5.9788, lng: 116.0753},
+            'SARAWAK': {lat: 2.5000, lng: 113.5000},
+            'WILAYAH\nPERSEKUTUAN KUALA\nLUMPUR': {lat: 3.1390, lng: 101.6869}
+        };
 
         // Function to populate state filter dropdown
         function populateStateFilter(data) {
@@ -212,24 +230,6 @@
                 stateGroups[project.state].push(project);
             });
 
-            // Define approximate center coordinates for Malaysian states
-            const stateCoordinates = {
-                'JOHOR': {lat: 1.9344, lng: 103.3587},
-                'KEDAH': {lat: 6.1184, lng: 100.3685},
-                'KELANTAN': {lat: 5.3117, lng: 102.1386},
-                'MELAKA': {lat: 2.1896, lng: 102.2501},
-                'NEGERI SEMBILAN': {lat: 2.7258, lng: 101.9424},
-                'PAHANG': {lat: 3.8077, lng: 102.4955},
-                'PULAU PINANG': {lat: 5.4141, lng: 100.3288},
-                'PERAK': {lat: 4.5921, lng: 101.0901},
-                'PERLIS': {lat: 6.4449, lng: 100.2048},
-                'SELANGOR': {lat: 3.0738, lng: 101.5183},
-                'TERENGGANU': {lat: 5.3117, lng: 103.1324},
-                'SABAH': {lat: 5.9788, lng: 116.0753},
-                'SARAWAK': {lat: 2.5000, lng: 113.5000},
-                'WILAYAH\nPERSEKUTUAN KUALA\nLUMPUR': {lat: 3.1390, lng: 101.6869}
-            };
-
             stateMarkers = [];
             Object.keys(stateGroups).forEach(state => {
                 const projects = stateGroups[state];
@@ -244,11 +244,11 @@
                     position = {lat: avgLat, lng: avgLng};
                 }
 
-                // Create SVG icon with count
+                // Create yellow circle icon with count
                 const svg = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60">
-                        <circle cx="30" cy="30" r="28" fill="#dc3545" stroke="white" stroke-width="3"/>
-                        <text x="30" y="35" font-size="18" font-weight="bold" text-anchor="middle" fill="white">${count}</text>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56">
+                        <circle cx="28" cy="28" r="26" fill="#FFD700" stroke="white" stroke-width="3"/>
+                        <text x="28" y="33" font-size="18" font-weight="bold" text-anchor="middle" fill="black">${count}</text>
                     </svg>
                 `;
 
@@ -257,8 +257,8 @@
                     map: null, // Don't show initially
                     icon: {
                         url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
-                        scaledSize: new google.maps.Size(60, 60),
-                        anchor: new google.maps.Point(30, 30)
+                        scaledSize: new google.maps.Size(56, 56),
+                        anchor: new google.maps.Point(28, 28)
                     },
                     title: `${state}: ${count} projects`,
                     state: state,
@@ -283,7 +283,7 @@
                     const marker = new google.maps.Marker({
                         position: {lat: project.lat, lng: project.lng},
                         title: project.project_name,
-                        icon: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                        icon: 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
                         projectType: project.type,
                         projectState: project.state,
                         projectData: project,
@@ -359,6 +359,22 @@
         // Function to filter by state
         function filterByState() {
             activeStateFilter = document.getElementById('state-filter').value;
+            
+            if (activeStateFilter !== 'all') {
+                // Find the state marker
+                const stateMarker = stateMarkers.find(m => m.state === activeStateFilter);
+                if (stateMarker) {
+                    // Zoom to the selected state
+                    const position = stateMarker.getPosition();
+                    map.setCenter(position);
+                    map.setZoom(9); // Zoom level that shows state details
+                }
+            } else {
+                // Reset to default view when "All States" is selected
+                map.setCenter({lat: 4.2105, lng: 101.9758});
+                map.setZoom(7);
+            }
+            
             updateMarkersBasedOnZoom();
         }
 
