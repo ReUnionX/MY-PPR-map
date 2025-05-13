@@ -230,14 +230,14 @@
         }
 
         function showInfoWindow(marker, project) {
-            // Format confidence display
-            const confidenceColors = {
+            // Format geo accuracy display
+            const accuracyColors = {
                 'high': '#4CAF50',
                 'medium': '#FFA500',
                 'low': '#FF5722'
             };
             
-            const confidenceStyle = `color: ${confidenceColors[project.confidence] || '#666'}; font-weight: bold;`;
+            const accuracyStyle = `color: ${accuracyColors[project['geo accuracy']] || '#666'}; font-weight: bold;`;
             
             const content = `
                 <div class="info-window">
@@ -245,7 +245,7 @@
                     <span class="type-badge type-${project.type.toLowerCase().replace('/', '-').replace(' ', '-')}">${project.type}</span>
                     <p><strong>State:</strong> ${project.state.replace(/\n/g, ' ')}</p>
                     <p><strong>Status:</strong> ${project.status || 'Unknown'}</p>
-                    <p><strong>Confidence:</strong> <span style="${confidenceStyle}">${project.confidence || 'Manual'}</span></p>
+                    <p><strong>Geo Accuracy:</strong> <span style="${accuracyStyle}">${project['geo accuracy'] || 'Manual'}</span></p>
                     <p><strong>Address:</strong><br>${project.formatted_address || 'Not available'}</p>
                     <p><strong>Coordinates:</strong><br>Lat: ${project.lat.toFixed(6)}, Lng: ${project.lng.toFixed(6)}</p>
                 </div>
