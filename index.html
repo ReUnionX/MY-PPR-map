@@ -97,7 +97,7 @@
             font-size: 14px;
         }
         .cluster-icon {
-            background-color: #4CAF50;
+            background-color: #dc3545 !important; /* Red color */
             color: white;
             border-radius: 50%;
             text-align: center;
@@ -135,10 +135,11 @@
     <script>
         let map;
         let markers = [];
-        let markerCluster;
+        let stateMarkers = [];
         let projectData = [];
         let activeStateFilter = 'all';
         let infoWindow;
+        let currentZoom = 7;
         
         function initMap() {
             // Initialize map centered on Malaysia
@@ -153,7 +154,13 @@
             // Initialize info window
             infoWindow = new google.maps.InfoWindow();
 
-            // Load project data - UPDATE THIS TO MATCH YOUR JSON FILENAME
+            // Listen for zoom changes
+            map.addListener('zoom_changed', () => {
+                currentZoom = map.getZoom();
+                updateMarkersBasedOnZoom();
+            });
+
+            // Load project data
             fetch('updated_map_data.json')
                 .then(response => response.json())
                 .then(data => {
@@ -163,8 +170,11 @@
                     // Populate state filter
                     populateStateFilter(data);
                     
-                    // Add markers
-                    addMarkers(data);
+                    // Initialize markers
+                    createAllMarkers(data);
+                    
+                    // Show appropriate markers based on initial zoom
+                    updateMarkersBasedOnZoom();
                     
                     // Update statistics
                     updateStats();
@@ -221,11 +231,43 @@
                 }
             });
 
-            // Create marker clusterer
+            // Create marker clusterer with red color scheme
             markerCluster = new MarkerClusterer(map, markers, {
                 imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m',
                 gridSize: 50,
-                maxZoom: 15
+                maxZoom: 15,
+                styles: [{
+                    textColor: 'white',
+                    url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                    height: 35,
+                    width: 35,
+                    textSize: 12
+                }, {
+                    textColor: 'white',
+                    url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                    height: 45,
+                    width: 45,
+                    textSize: 14
+                }, {
+                    textColor: 'white',
+                    url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                    height: 55,
+                    width: 55,
+                    textSize: 16
+                }, {
+                    textColor: 'white',
+                    url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                    height: 65,
+                    width: 65,
+                    textSize: 18
+                }, {
+                    textColor: 'white',
+                    url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                    height: 75,
+                    width: 75,
+                    textSize: 20
+                }],
+                minimumClusterSize: 1
             });
         }
 
@@ -257,26 +299,30 @@
 
         function filterByState() {
             activeStateFilter = document.getElementById('state-filter').value;
-            applyFilters();
+            updateMarkersBasedOnZoom();
         }
 
         function applyFilters() {
-            markers.forEach(marker => {
-                const stateMatch = activeStateFilter === 'all' || marker.projectState === activeStateFilter;
-                marker.setVisible(stateMatch);
-            });
-            
-            // Update cluster
-            if (markerCluster) {
-                markerCluster.repaint();
-            }
-            
-            updateStats();
+            updateMarkersBasedOnZoom();
         }
 
         function updateStats() {
-            const total = markers.length;
-            const visible = markers.filter(m => m.getVisible()).length;
+            let total = 0;
+            let visible = 0;
+
+            if (currentZoom < 9) {
+                // Count from state markers
+                total = projectData.length;
+                if (activeStateFilter === 'all') {
+                    visible = total;
+                } else {
+                    visible = projectData.filter(p => p.state === activeStateFilter).length;
+                }
+            } else {
+                // Count from individual markers
+                total = markers.length;
+                visible = markers.filter(m => m.getMap() !== null).length;
+            }
             
             document.getElementById('total-count').textContent = total;
             document.getElementById('visible-count').textContent = visible;
@@ -292,31 +338,25 @@
                 );
                 
                 if (matches.length > 0) {
-                    // Zoom to the first match
+                    // Zoom in to show individual markers
                     const firstMatch = matches[0];
                     map.setCenter(firstMatch.getPosition());
                     map.setZoom(15);
                     
                     // Show info window
-                    showInfoWindow(firstMatch, firstMatch.projectData);
-                    
-                    // Highlight all matches
-                    markers.forEach(marker => {
-                        const isMatch = marker.projectData.project_name.toLowerCase().includes(searchTerm);
-                        marker.setVisible(isMatch);
-                    });
-                    
-                    updateStats();
+                    setTimeout(() => {
+                        showInfoWindow(firstMatch, firstMatch.projectData);
+                    }, 500);
                 }
             } else if (searchTerm === '') {
-                // Reset filters when search is cleared
-                applyFilters();
+                // Reset view
+                map.setZoom(7);
+                map.setCenter({lat: 4.2105, lng: 101.9758});
             }
         }
     </script>
     
     <!-- Replace YOUR_API_KEY with your actual API key -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBU1rf1Z2Pbi2yyjL2CK6kycp-RycWgCoM&callback=initMap" async defer></script>
-    <script src="https://unpkg.com/@googlemaps/markerclustererplus/dist/index.min.js"></script>
 </body>
 </html>
