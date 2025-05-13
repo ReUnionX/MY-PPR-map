@@ -396,7 +396,7 @@
     "lat": 2.28308392602606,
     "lng": 102.233410367084,
     "formatted_address": "Kedai 2, program perumahan rakyat (ppr), paya rumput, Kampung Tampoi, 75260 Krubong, Malacca, Malaysia",
-    "confidence": "nan",
+    "confidence": "null",
     "status": "not_found",
     "search_query": "PPR PAYA RUMBUT, KRUBONG, MELAKA, Malaysia",
     "score": 0.0
@@ -434,7 +434,7 @@
     "lat": 2.25046548569192,
     "lng": 102.324632635485,
     "formatted_address": "75450 Malacca, Malaysia",
-    "confidence": "nan",
+    "confidence": "null",
     "status": "not_found",
     "search_query": "PPR TEHEL,BEMBAN, MELAKA, Malaysia",
     "score": 0.0
@@ -614,8 +614,8 @@
     "type": "PPR",
     "lat": 3.93600774019519,
     "lng": 102.369063587311,
-    "formatted_address": NaN,
-    "confidence": "nan",
+    "formatted_address": null,
+    "confidence": "null",
     "status": "not_found",
     "search_query": "BANDAR BARU, JERANTUT, PAHANG, Malaysia",
     "score": 0.0
@@ -770,7 +770,7 @@
     "lat": 2.74678372561039,
     "lng": 103.52994603598,
     "formatted_address": "Kampung Parit Pontian, 26800 Kuala Rompin, Pahang, Malaysia",
-    "confidence": "nan",
+    "confidence": "null",
     "status": "not_found",
     "search_query": "PPR PONTIAN JAYA, PAHANG, Malaysia",
     "score": 0.0
@@ -1289,7 +1289,7 @@
     "lat": 6.51678835765147,
     "lng": 116.76653315814,
     "formatted_address": "89100 Kota Marudu, Sabah, Malaysia",
-    "confidence": "nan",
+    "confidence": "null",
     "status": "not_found",
     "search_query": "PPR KERONGKOM JAYA, SABAH, Malaysia",
     "score": 0.0
@@ -1496,7 +1496,7 @@
     "lat": 6.91365070815873,
     "lng": 116.834436826553,
     "formatted_address": "89050 Kudat, Sabah, Malaysia",
-    "confidence": "nan",
+    "confidence": "null",
     "status": "not_found",
     "search_query": "PPR TMN EHSAN, SABAH, Malaysia",
     "score": 0.0
@@ -1521,7 +1521,7 @@
     "lat": 5.88932330503469,
     "lng": 118.069939280604,
     "formatted_address": "Army Camp Rd,, 90000 Sandakan, Sabah, Malaysia",
-    "confidence": "nan",
+    "confidence": "null",
     "status": "not_found",
     "search_query": "TAMAN MURNI, SABAH, Malaysia",
     "score": 0.0
@@ -1559,7 +1559,7 @@
     "lat": 5.89895336596498,
     "lng": 117.921488143796,
     "formatted_address": "90000 Sandakan, Sabah, Malaysia",
-    "confidence": "nan",
+    "confidence": "null",
     "status": "not_found",
     "search_query": "TAMAN GUM GUM JAYA, SABAH, Malaysia",
     "score": 0.0
@@ -1597,7 +1597,7 @@
     "lat": 4.30074587644001,
     "lng": 117.892198978742,
     "formatted_address": "Blok E24 - 113, taman sri semarak, 91000 Tawau, Sabah, Malaysia",
-    "confidence": "nan",
+    "confidence": "null",
     "status": "not_found",
     "search_query": "PPR SRI SEMARAK, SABAH, Malaysia",
     "score": 0.0
