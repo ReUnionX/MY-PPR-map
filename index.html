@@ -244,19 +244,20 @@
                     position = {lat: avgLat, lng: avgLng};
                 }
 
-                // Create a yellow circle with gradient effect similar to earthquake map
+                // Create a smaller yellow circle with lighter center
                 const svg = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="45" height="45">
                         <defs>
                             <radialGradient id="grad${state}" cx="50%" cy="50%" r="50%">
-                                <stop offset="0%" style="stop-color:#FFC107;stop-opacity:0.9"/>
-                                <stop offset="60%" style="stop-color:#FFC107;stop-opacity:0.7"/>
-                                <stop offset="100%" style="stop-color:#FFC107;stop-opacity:0.1"/>
+                                <stop offset="0%" style="stop-color:#FFEB3B;stop-opacity:0.9"/>
+                                <stop offset="40%" style="stop-color:#FFD54F;stop-opacity:0.85"/>
+                                <stop offset="70%" style="stop-color:#FFC107;stop-opacity:0.7"/>
+                                <stop offset="100%" style="stop-color:#FFC107;stop-opacity:0.2"/>
                             </radialGradient>
                         </defs>
-                        <circle cx="30" cy="30" r="25" fill="url(#grad${state})"/>
-                        <circle cx="30" cy="30" r="18" fill="#FFC107"/>
-                        <text x="30" y="36" font-size="16" font-weight="bold" text-anchor="middle" fill="black">${count}</text>
+                        <circle cx="22.5" cy="22.5" r="20" fill="url(#grad${state})"/>
+                        <circle cx="22.5" cy="22.5" r="14" fill="#FFEB3B"/>
+                        <text x="22.5" y="27" font-size="14" font-weight="bold" text-anchor="middle" fill="black">${count}</text>
                     </svg>
                 `;
 
@@ -265,8 +266,8 @@
                     map: null,
                     icon: {
                         url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
-                        scaledSize: new google.maps.Size(60, 60),
-                        anchor: new google.maps.Point(30, 30)
+                        scaledSize: new google.maps.Size(45, 45),
+                        anchor: new google.maps.Point(22.5, 22.5)
                     },
                     title: `${state}: ${count} projects`,
                     state: state,
