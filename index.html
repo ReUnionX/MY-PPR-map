@@ -96,15 +96,6 @@
             border-radius: 4px;
             font-size: 14px;
         }
-        .cluster-icon {
-            background-color: #dc3545 !important; /* Red color */
-            color: white;
-            border-radius: 50%;
-            text-align: center;
-            font-weight: bold;
-            border: 3px solid white;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        }
     </style>
 </head>
 <body>
@@ -215,7 +206,7 @@
             
             // Zoom in to state when clicked
             map.setZoom(10);
-            const stateCoord = stateMarkers.find(m => m.state === state).getPosition();
+            const stateCoord = stateCoordinates[state] || stateMarkers.find(m => m.state === state).position;
             map.panTo(stateCoord);
         }
 
@@ -244,21 +235,22 @@
                     position = {lat: avgLat, lng: avgLng};
                 }
 
-                // Create yellow circle icon with count
-                const svg = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56">
-                        <circle cx="28" cy="28" r="26" fill="#FFD700" stroke="white" stroke-width="3"/>
-                        <text x="28" y="33" font-size="18" font-weight="bold" text-anchor="middle" fill="black">${count}</text>
-                    </svg>
-                `;
-
                 const marker = new google.maps.Marker({
                     position: position,
-                    map: null, // Don't show initially
+                    map: null,
                     icon: {
-                        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
-                        scaledSize: new google.maps.Size(56, 56),
-                        anchor: new google.maps.Point(28, 28)
+                        path: google.maps.SymbolPath.CIRCLE,
+                        fillColor: '#FFC107',
+                        fillOpacity: 1,
+                        strokeColor: 'white',
+                        strokeWeight: 3,
+                        scale: 28
+                    },
+                    label: {
+                        text: count.toString(),
+                        fontWeight: 'bold',
+                        fontSize: '18px',
+                        color: 'black'
                     },
                     title: `${state}: ${count} projects`,
                     state: state,
@@ -283,7 +275,14 @@
                     const marker = new google.maps.Marker({
                         position: {lat: project.lat, lng: project.lng},
                         title: project.project_name,
-                        icon: 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
+                        icon: {
+                            path: google.maps.SymbolPath.CIRCLE,
+                            fillColor: '#FFC107',
+                            fillOpacity: 1,
+                            strokeColor: 'white',
+                            strokeWeight: 2,
+                            scale: 8
+                        },
                         projectType: project.type,
                         projectState: project.state,
                         projectData: project,
@@ -361,12 +360,11 @@
             activeStateFilter = document.getElementById('state-filter').value;
             
             if (activeStateFilter !== 'all') {
-                // Find the state marker
-                const stateMarker = stateMarkers.find(m => m.state === activeStateFilter);
-                if (stateMarker) {
+                // Find the state coordinates
+                const stateCoord = stateCoordinates[activeStateFilter];
+                if (stateCoord) {
                     // Zoom to the selected state
-                    const position = stateMarker.getPosition();
-                    map.setCenter(position);
+                    map.setCenter(stateCoord);
                     map.setZoom(9); // Zoom level that shows state details
                 }
             } else {
