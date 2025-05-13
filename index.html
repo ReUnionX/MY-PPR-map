@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Malaysia Housing Projects Map</title>
+    <title>Malaysia PPR Map</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
@@ -51,28 +51,6 @@
             font-weight: bold;
             color: #555;
         }
-        .filter-btn {
-            padding: 6px 12px;
-            border: 2px solid #ddd;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 14px;
-            background-color: white;
-            transition: all 0.3s;
-        }
-        .filter-btn:hover {
-            background-color: #f0f0f0;
-        }
-        .filter-btn.active {
-            background-color: #4CAF50;
-            color: white;
-            border-color: #4CAF50;
-        }
-        .filter-btn.inactive {
-            background-color: #e0e0e0;
-            color: #999;
-            border-color: #e0e0e0;
-        }
         .info-window {
             padding: 10px;
             max-width: 350px;
@@ -101,32 +79,10 @@
         .type-taman { background-color: #99ff99; color: #006600; }
         .type-perumahan { background-color: #ffcc99; color: #663300; }
         
-        .legend {
-            background: white;
-            padding: 10px;
-            margin: 10px;
-            border: 2px solid #999;
-            border-radius: 5px;
-            font-family: Arial, sans-serif;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .legend h4 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
-        }
-        .legend div {
-            margin: 5px 0;
-            font-size: 12px;
-        }
-        .legend img {
-            vertical-align: middle;
-            margin-right: 5px;
-        }
         .search-box {
             position: absolute;
             top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
+            right: 10px;
             z-index: 5;
             background: white;
             padding: 10px;
@@ -154,21 +110,13 @@
 <body>
     <div class="map-header">
         <div class="header-content">
-            <div class="title">Malaysia Housing Projects Map</div>
+            <div class="title">Malaysia PPR Map</div>
             <div class="stats" id="stats">
                 <span>Total Projects: <strong id="total-count">0</strong></span>
                 <span>Visible: <strong id="visible-count">0</strong></span>
             </div>
         </div>
         <div class="filter-section">
-            <div class="filter-group">
-                <span class="filter-label">Project Types:</span>
-                <button class="filter-btn active" onclick="filterMarkers('all')">All</button>
-                <button class="filter-btn active" onclick="filterMarkers('PPR')">PPR</button>
-                <button class="filter-btn active" onclick="filterMarkers('Apartment')">Apartment/Flat</button>
-                <button class="filter-btn active" onclick="filterMarkers('Taman/Others')">Taman/Others</button>
-                <button class="filter-btn active" onclick="filterMarkers('Perumahan Awam')">Perumahan Awam</button>
-            </div>
             <div class="filter-group">
                 <span class="filter-label">States:</span>
                 <select id="state-filter" onchange="filterByState()" style="padding: 6px; border-radius: 4px;">
@@ -189,7 +137,6 @@
         let markers = [];
         let markerCluster;
         let projectData = [];
-        let activeTypeFilters = ['PPR', 'Apartment', 'Taman/Others', 'Perumahan Awam'];
         let activeStateFilter = 'all';
         let infoWindow;
         
@@ -205,18 +152,6 @@
 
             // Initialize info window
             infoWindow = new google.maps.InfoWindow();
-
-            // Add legend
-            const legend = document.createElement('div');
-            legend.className = 'legend';
-            legend.innerHTML = `
-                <h4>Project Types</h4>
-                <div><img src="https://maps.google.com/mapfiles/ms/icons/red-dot.png" width="20"> PPR</div>
-                <div><img src="https://maps.google.com/mapfiles/ms/icons/blue-dot.png" width="20"> Apartment/Flat</div>
-                <div><img src="https://maps.google.com/mapfiles/ms/icons/green-dot.png" width="20"> Taman/Others</div>
-                <div><img src="https://maps.google.com/mapfiles/ms/icons/orange-dot.png" width="20"> Perumahan Awam</div>
-            `;
-            map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(legend);
 
             // Load project data - UPDATE THIS TO MATCH YOUR JSON FILENAME
             fetch('updated_map_data.json')
@@ -262,20 +197,15 @@
             markers.forEach(marker => marker.setMap(null));
             markers = [];
 
-            // Define marker icons
-            const markerIcons = {
-                'PPR': 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-                'Apartment': 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-                'Taman/Others': 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
-                'Perumahan Awam': 'https://maps.google.com/mapfiles/ms/icons/orange-dot.png'
-            };
+            // Use a single red icon for all markers
+            const markerIcon = 'https://maps.google.com/mapfiles/ms/icons/red-dot.png';
 
             data.forEach((project, index) => {
                 if (project.lat && project.lng) {
                     const marker = new google.maps.Marker({
                         position: {lat: project.lat, lng: project.lng},
                         title: project.project_name,
-                        icon: markerIcons[project.type] || markerIcons['Taman/Others'],
+                        icon: markerIcon,
                         projectType: project.type,
                         projectState: project.state,
                         projectData: project,
@@ -325,60 +255,6 @@
             infoWindow.open(map, marker);
         }
 
-        function filterMarkers(type) {
-            const button = event.target;
-            
-            if (type === 'all') {
-                // Toggle all filters
-                const showAll = activeTypeFilters.length === 0;
-                
-                if (showAll) {
-                    activeTypeFilters = ['PPR', 'Apartment', 'Taman/Others', 'Perumahan Awam'];
-                    document.querySelectorAll('.filter-btn').forEach(btn => {
-                        if (btn.textContent !== 'All') {
-                            btn.classList.remove('inactive');
-                            btn.classList.add('active');
-                        }
-                    });
-                    button.classList.add('active');
-                    button.classList.remove('inactive');
-                } else {
-                    activeTypeFilters = [];
-                    document.querySelectorAll('.filter-btn').forEach(btn => {
-                        if (btn.textContent !== 'All') {
-                            btn.classList.remove('active');
-                            btn.classList.add('inactive');
-                        }
-                    });
-                    button.classList.remove('active');
-                    button.classList.add('inactive');
-                }
-            } else {
-                // Toggle individual filter
-                if (button.classList.contains('active')) {
-                    button.classList.remove('active');
-                    button.classList.add('inactive');
-                    activeTypeFilters = activeTypeFilters.filter(f => f !== type);
-                } else {
-                    button.classList.remove('inactive');
-                    button.classList.add('active');
-                    activeTypeFilters.push(type);
-                }
-                
-                // Update "All" button status
-                const allButton = document.querySelector('.filter-btn');
-                if (activeTypeFilters.length === 4) {
-                    allButton.classList.remove('inactive');
-                    allButton.classList.add('active');
-                } else {
-                    allButton.classList.remove('active');
-                    allButton.classList.add('inactive');
-                }
-            }
-            
-            applyFilters();
-        }
-
         function filterByState() {
             activeStateFilter = document.getElementById('state-filter').value;
             applyFilters();
@@ -386,11 +262,8 @@
 
         function applyFilters() {
             markers.forEach(marker => {
-                const typeMatch = activeTypeFilters.includes(marker.projectType);
                 const stateMatch = activeStateFilter === 'all' || marker.projectState === activeStateFilter;
-                const isVisible = typeMatch && stateMatch;
-                
-                marker.setVisible(isVisible);
+                marker.setVisible(stateMatch);
             });
             
             // Update cluster
