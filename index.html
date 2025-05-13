@@ -133,6 +133,7 @@
     <div id="map"></div>
 
     <script>
+        // Global variables
         let map;
         let markers = [];
         let stateMarkers = [];
@@ -140,7 +141,256 @@
         let activeStateFilter = 'all';
         let infoWindow;
         let currentZoom = 7;
-        
+
+        // Function to populate state filter dropdown
+        function populateStateFilter(data) {
+            const states = [...new Set(data.map(p => p.state))].sort();
+            const stateFilter = document.getElementById('state-filter');
+            
+            states.forEach(state => {
+                const cleanState = state.replace(/\n/g, ' ').trim();
+                const option = document.createElement('option');
+                option.value = state;
+                option.textContent = cleanState;
+                stateFilter.appendChild(option);
+            });
+        }
+
+        // Function to show info window for individual projects
+        function showInfoWindow(marker, project) {
+            const accuracyColors = {
+                'high': '#4CAF50',
+                'medium': '#FFA500',
+                'low': '#FF5722'
+            };
+            
+            const accuracyStyle = `color: ${accuracyColors[project['geo accuracy']] || '#666'}; font-weight: bold;`;
+            
+            const content = `
+                <div class="info-window">
+                    <h3>${project.project_name}</h3>
+                    <span class="type-badge type-${project.type.toLowerCase().replace('/', '-').replace(' ', '-')}">${project.type}</span>
+                    <p><strong>State:</strong> ${project.state.replace(/\n/g, ' ')}</p>
+                    <p><strong>Status:</strong> ${project.status || 'Unknown'}</p>
+                    <p><strong>Geo Accuracy:</strong> <span style="${accuracyStyle}">${project['geo accuracy'] || 'Manual'}</span></p>
+                    <p><strong>Address:</strong><br>${project.formatted_address || 'Not available'}</p>
+                    <p><strong>Coordinates:</strong><br>Lat: ${project.lat.toFixed(6)}, Lng: ${project.lng.toFixed(6)}</p>
+                </div>
+            `;
+            
+            infoWindow.setContent(content);
+            infoWindow.open(map, marker);
+        }
+
+        // Function to show info window for state markers
+        function showStateInfo(state, count, projects) {
+            const content = `
+                <div class="info-window">
+                    <h3>${state.replace(/\n/g, ' ')}</h3>
+                    <p><strong>Total Projects:</strong> ${count}</p>
+                    <p>Click on the map to zoom in and see individual projects.</p>
+                </div>
+            `;
+            
+            infoWindow.setContent(content);
+            infoWindow.open(map, stateMarkers.find(m => m.state === state));
+            
+            // Zoom in to state when clicked
+            map.setZoom(10);
+            const stateCoord = stateMarkers.find(m => m.state === state).getPosition();
+            map.panTo(stateCoord);
+        }
+
+        // Function to create state-level markers
+        function createStateMarkers(data) {
+            // Group projects by state
+            const stateGroups = {};
+            data.forEach(project => {
+                if (!stateGroups[project.state]) {
+                    stateGroups[project.state] = [];
+                }
+                stateGroups[project.state].push(project);
+            });
+
+            // Define approximate center coordinates for Malaysian states
+            const stateCoordinates = {
+                'JOHOR': {lat: 1.9344, lng: 103.3587},
+                'KEDAH': {lat: 6.1184, lng: 100.3685},
+                'KELANTAN': {lat: 5.3117, lng: 102.1386},
+                'MELAKA': {lat: 2.1896, lng: 102.2501},
+                'NEGERI SEMBILAN': {lat: 2.7258, lng: 101.9424},
+                'PAHANG': {lat: 3.8077, lng: 102.4955},
+                'PULAU PINANG': {lat: 5.4141, lng: 100.3288},
+                'PERAK': {lat: 4.5921, lng: 101.0901},
+                'PERLIS': {lat: 6.4449, lng: 100.2048},
+                'SELANGOR': {lat: 3.0738, lng: 101.5183},
+                'TERENGGANU': {lat: 5.3117, lng: 103.1324},
+                'SABAH': {lat: 5.9788, lng: 116.0753},
+                'SARAWAK': {lat: 2.5000, lng: 113.5000},
+                'WILAYAH\nPERSEKUTUAN KUALA\nLUMPUR': {lat: 3.1390, lng: 101.6869}
+            };
+
+            stateMarkers = [];
+            Object.keys(stateGroups).forEach(state => {
+                const projects = stateGroups[state];
+                const count = projects.length;
+                
+                // Get state center coordinates
+                let position = stateCoordinates[state];
+                if (!position) {
+                    // If state not found, calculate average position from projects
+                    const avgLat = projects.reduce((sum, p) => sum + p.lat, 0) / count;
+                    const avgLng = projects.reduce((sum, p) => sum + p.lng, 0) / count;
+                    position = {lat: avgLat, lng: avgLng};
+                }
+
+                // Create SVG icon with count
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60">
+                        <circle cx="30" cy="30" r="28" fill="#dc3545" stroke="white" stroke-width="3"/>
+                        <text x="30" y="35" font-size="18" font-weight="bold" text-anchor="middle" fill="white">${count}</text>
+                    </svg>
+                `;
+
+                const marker = new google.maps.Marker({
+                    position: position,
+                    map: null, // Don't show initially
+                    icon: {
+                        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+                        scaledSize: new google.maps.Size(60, 60),
+                        anchor: new google.maps.Point(30, 30)
+                    },
+                    title: `${state}: ${count} projects`,
+                    state: state,
+                    count: count
+                });
+
+                // Add click listener for state marker
+                marker.addListener('click', () => {
+                    showStateInfo(state, count, projects);
+                });
+
+                stateMarkers.push(marker);
+            });
+        }
+
+        // Function to create all markers
+        function createAllMarkers(data) {
+            // Create individual markers for each project
+            markers = [];
+            data.forEach((project, index) => {
+                if (project.lat && project.lng) {
+                    const marker = new google.maps.Marker({
+                        position: {lat: project.lat, lng: project.lng},
+                        title: project.project_name,
+                        icon: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                        projectType: project.type,
+                        projectState: project.state,
+                        projectData: project,
+                        id: index,
+                        map: null // Don't show initially
+                    });
+
+                    // Add click listener for info window
+                    marker.addListener('click', () => {
+                        showInfoWindow(marker, project);
+                    });
+
+                    markers.push(marker);
+                }
+            });
+
+            // Create state-level markers
+            createStateMarkers(data);
+        }
+
+        // Function to update markers based on zoom level
+        function updateMarkersBasedOnZoom() {
+            // Show state markers when zoomed out (zoom level < 9)
+            // Show individual markers when zoomed in (zoom level >= 9)
+            const showStates = currentZoom < 9;
+
+            // Hide all markers first
+            markers.forEach(marker => marker.setMap(null));
+            stateMarkers.forEach(marker => marker.setMap(null));
+
+            if (showStates) {
+                // Show state markers
+                stateMarkers.forEach(marker => {
+                    if (activeStateFilter === 'all' || marker.state === activeStateFilter) {
+                        marker.setMap(map);
+                    }
+                });
+            } else {
+                // Show individual markers
+                markers.forEach(marker => {
+                    if (activeStateFilter === 'all' || marker.projectState === activeStateFilter) {
+                        marker.setMap(map);
+                    }
+                });
+            }
+
+            updateStats();
+        }
+
+        // Function to update statistics
+        function updateStats() {
+            let total = 0;
+            let visible = 0;
+
+            if (currentZoom < 9) {
+                // Count from state markers
+                total = projectData.length;
+                if (activeStateFilter === 'all') {
+                    visible = total;
+                } else {
+                    visible = projectData.filter(p => p.state === activeStateFilter).length;
+                }
+            } else {
+                // Count from individual markers
+                total = markers.length;
+                visible = markers.filter(m => m.getMap() !== null).length;
+            }
+            
+            document.getElementById('total-count').textContent = total;
+            document.getElementById('visible-count').textContent = visible;
+        }
+
+        // Function to filter by state
+        function filterByState() {
+            activeStateFilter = document.getElementById('state-filter').value;
+            updateMarkersBasedOnZoom();
+        }
+
+        // Function to search projects
+        function searchProjects(event) {
+            const searchTerm = event.target.value.toLowerCase();
+            
+            if (event.key === 'Enter' && searchTerm) {
+                // Find matching projects
+                const matches = markers.filter(marker => 
+                    marker.projectData.project_name.toLowerCase().includes(searchTerm)
+                );
+                
+                if (matches.length > 0) {
+                    // Zoom in to show individual markers
+                    const firstMatch = matches[0];
+                    map.setCenter(firstMatch.getPosition());
+                    map.setZoom(15);
+                    
+                    // Show info window
+                    setTimeout(() => {
+                        showInfoWindow(firstMatch, firstMatch.projectData);
+                    }, 500);
+                }
+            } else if (searchTerm === '') {
+                // Reset view
+                map.setZoom(7);
+                map.setCenter({lat: 4.2105, lng: 101.9758});
+            }
+        }
+
+        // Main initialization function
         function initMap() {
             // Initialize map centered on Malaysia
             map = new google.maps.Map(document.getElementById('map'), {
@@ -183,176 +433,6 @@
                     console.error('Error loading data:', error);
                     alert('Error loading project data. Make sure updated_map_data.json is in the same directory.');
                 });
-        }
-
-        function populateStateFilter(data) {
-            const states = [...new Set(data.map(p => p.state))].sort();
-            const stateFilter = document.getElementById('state-filter');
-            
-            states.forEach(state => {
-                // Clean up state names
-                const cleanState = state.replace(/\n/g, ' ').trim();
-                const option = document.createElement('option');
-                option.value = state;
-                option.textContent = cleanState;
-                stateFilter.appendChild(option);
-            });
-        }
-
-        function addMarkers(data) {
-            // Clear existing markers
-            if (markerCluster) {
-                markerCluster.clearMarkers();
-            }
-            markers.forEach(marker => marker.setMap(null));
-            markers = [];
-
-            // Use a single red icon for all markers
-            const markerIcon = 'https://maps.google.com/mapfiles/ms/icons/red-dot.png';
-
-            data.forEach((project, index) => {
-                if (project.lat && project.lng) {
-                    const marker = new google.maps.Marker({
-                        position: {lat: project.lat, lng: project.lng},
-                        title: project.project_name,
-                        icon: markerIcon,
-                        projectType: project.type,
-                        projectState: project.state,
-                        projectData: project,
-                        id: index
-                    });
-
-                    // Add click listener for info window
-                    marker.addListener('click', () => {
-                        showInfoWindow(marker, project);
-                    });
-
-                    markers.push(marker);
-                }
-            });
-
-            // Create marker clusterer with red color scheme
-            markerCluster = new MarkerClusterer(map, markers, {
-                imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m',
-                gridSize: 50,
-                maxZoom: 15,
-                styles: [{
-                    textColor: 'white',
-                    url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-                    height: 35,
-                    width: 35,
-                    textSize: 12
-                }, {
-                    textColor: 'white',
-                    url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-                    height: 45,
-                    width: 45,
-                    textSize: 14
-                }, {
-                    textColor: 'white',
-                    url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-                    height: 55,
-                    width: 55,
-                    textSize: 16
-                }, {
-                    textColor: 'white',
-                    url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-                    height: 65,
-                    width: 65,
-                    textSize: 18
-                }, {
-                    textColor: 'white',
-                    url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-                    height: 75,
-                    width: 75,
-                    textSize: 20
-                }],
-                minimumClusterSize: 1
-            });
-        }
-
-        function showInfoWindow(marker, project) {
-            // Format geo accuracy display
-            const accuracyColors = {
-                'high': '#4CAF50',
-                'medium': '#FFA500',
-                'low': '#FF5722'
-            };
-            
-            const accuracyStyle = `color: ${accuracyColors[project['geo accuracy']] || '#666'}; font-weight: bold;`;
-            
-            const content = `
-                <div class="info-window">
-                    <h3>${project.project_name}</h3>
-                    <span class="type-badge type-${project.type.toLowerCase().replace('/', '-').replace(' ', '-')}">${project.type}</span>
-                    <p><strong>State:</strong> ${project.state.replace(/\n/g, ' ')}</p>
-                    <p><strong>Status:</strong> ${project.status || 'Unknown'}</p>
-                    <p><strong>Geo Accuracy:</strong> <span style="${accuracyStyle}">${project['geo accuracy'] || 'Manual'}</span></p>
-                    <p><strong>Address:</strong><br>${project.formatted_address || 'Not available'}</p>
-                    <p><strong>Coordinates:</strong><br>Lat: ${project.lat.toFixed(6)}, Lng: ${project.lng.toFixed(6)}</p>
-                </div>
-            `;
-            
-            infoWindow.setContent(content);
-            infoWindow.open(map, marker);
-        }
-
-        function filterByState() {
-            activeStateFilter = document.getElementById('state-filter').value;
-            updateMarkersBasedOnZoom();
-        }
-
-        function applyFilters() {
-            updateMarkersBasedOnZoom();
-        }
-
-        function updateStats() {
-            let total = 0;
-            let visible = 0;
-
-            if (currentZoom < 9) {
-                // Count from state markers
-                total = projectData.length;
-                if (activeStateFilter === 'all') {
-                    visible = total;
-                } else {
-                    visible = projectData.filter(p => p.state === activeStateFilter).length;
-                }
-            } else {
-                // Count from individual markers
-                total = markers.length;
-                visible = markers.filter(m => m.getMap() !== null).length;
-            }
-            
-            document.getElementById('total-count').textContent = total;
-            document.getElementById('visible-count').textContent = visible;
-        }
-
-        function searchProjects(event) {
-            const searchTerm = event.target.value.toLowerCase();
-            
-            if (event.key === 'Enter' && searchTerm) {
-                // Find matching projects
-                const matches = markers.filter(marker => 
-                    marker.projectData.project_name.toLowerCase().includes(searchTerm)
-                );
-                
-                if (matches.length > 0) {
-                    // Zoom in to show individual markers
-                    const firstMatch = matches[0];
-                    map.setCenter(firstMatch.getPosition());
-                    map.setZoom(15);
-                    
-                    // Show info window
-                    setTimeout(() => {
-                        showInfoWindow(firstMatch, firstMatch.projectData);
-                    }, 500);
-                }
-            } else if (searchTerm === '') {
-                // Reset view
-                map.setZoom(7);
-                map.setCenter({lat: 4.2105, lng: 101.9758});
-            }
         }
     </script>
     
