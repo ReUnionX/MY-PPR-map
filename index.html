@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Malaysia Housing Projects Map</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            height: 85vh;
+            width: 100%;
+        }
+        .map-header {
+            height: 15vh;
+            padding: 10px 20px;
+            background-color: #f8f9fa;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+        .filter-section {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .filter-label {
+            font-weight: bold;
+            color: #555;
+        }
+        .filter-btn {
+            padding: 6px 12px;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            background-color: white;
+            transition: all 0.3s;
+        }
+        .filter-btn:hover {
+            background-color: #f0f0f0;
+        }
+        .filter-btn.active {
+            background-color: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+        .filter-btn.inactive {
+            background-color: #e0e0e0;
+            color: #999;
+            border-color: #e0e0e0;
+        }
+        .info-window {
+            padding: 10px;
+            max-width: 350px;
+        }
+        .info-window h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 16px;
+        }
+        .info-window p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .info-window .type-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .type-ppr { background-color: #ff9999; color: #660000; }
+        .type-apartment { background-color: #99ccff; color: #003366; }
+        .type-taman { background-color: #99ff99; color: #006600; }
+        .type-perumahan { background-color: #ffcc99; color: #663300; }
+        
+        .legend {
+            background: white;
+            padding: 10px;
+            margin: 10px;
+            border: 2px solid #999;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .legend h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+        .legend div {
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        .legend img {
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+        .search-box {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 5;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        .search-box input {
+            width: 300px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .cluster-icon {
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            font-weight: bold;
+            border: 3px solid white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="map-header">
+        <div class="header-content">
+            <div class="title">Malaysia Housing Projects Map</div>
+            <div class="stats" id="stats">
+                <span>Total Projects: <strong id="total-count">0</strong></span>
+                <span>Visible: <strong id="visible-count">0</strong></span>
+            </div>
+        </div>
+        <div class="filter-section">
+            <div class="filter-group">
+                <span class="filter-label">Project Types:</span>
+                <button class="filter-btn active" onclick="filterMarkers('all')">All</button>
+                <button class="filter-btn active" onclick="filterMarkers('PPR')">PPR</button>
+                <button class="filter-btn active" onclick="filterMarkers('Apartment')">Apartment/Flat</button>
+                <button class="filter-btn active" onclick="filterMarkers('Taman/Others')">Taman/Others</button>
+                <button class="filter-btn active" onclick="filterMarkers('Perumahan Awam')">Perumahan Awam</button>
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">States:</span>
+                <select id="state-filter" onchange="filterByState()" style="padding: 6px; border-radius: 4px;">
+                    <option value="all">All States</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <div class="search-box">
+        <input type="text" id="search-input" placeholder="Search for a project..." onkeyup="searchProjects(event)">
+    </div>
+    
+    <div id="map"></div>
+
+    <script>
+        let map;
+        let markers = [];
+        let markerCluster;
+        let projectData = [];
+        let activeTypeFilters = ['PPR', 'Apartment', 'Taman/Others', 'Perumahan Awam'];
+        let activeStateFilter = 'all';
+        let infoWindow;
+        
+        function initMap() {
+            // Initialize map centered on Malaysia
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 7,
+                center: {lat: 4.2105, lng: 101.9758},
+                mapTypeControl: true,
+                streetViewControl: true,
+                fullscreenControl: true
+            });
+
+            // Initialize info window
+            infoWindow = new google.maps.InfoWindow();
+
+            // Add legend
+            const legend = document.createElement('div');
+            legend.className = 'legend';
+            legend.innerHTML = `
+                <h4>Project Types</h4>
+                <div><img src="http://maps.google.com/mapfiles/ms/icons/red-dot.png" width="20"> PPR</div>
+                <div><img src="http://maps.google.com/mapfiles/ms/icons/blue-dot.png" width="20"> Apartment/Flat</div>
+                <div><img src="http://maps.google.com/mapfiles/ms/icons/green-dot.png" width="20"> Taman/Others</div>
+                <div><img src="http://maps.google.com/mapfiles/ms/icons/orange-dot.png" width="20"> Perumahan Awam</div>
+            `;
+            map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(legend);
+
+            // Load project data - UPDATE THIS TO MATCH YOUR JSON FILENAME
+            fetch('updated_map_data.json')
+                .then(response => response.json())
+                .then(data => {
+                    projectData = data;
+                    console.log(`Loaded ${data.length} projects`);
+                    
+                    // Populate state filter
+                    populateStateFilter(data);
+                    
+                    // Add markers
+                    addMarkers(data);
+                    
+                    // Update statistics
+                    updateStats();
+                })
+                .catch(error => {
+                    console.error('Error loading data:', error);
+                    alert('Error loading project data. Make sure updated_map_data.json is in the same directory.');
+                });
+        }
+
+        function populateStateFilter(data) {
+            const states = [...new Set(data.map(p => p.state))].sort();
+            const stateFilter = document.getElementById('state-filter');
+            
+            states.forEach(state => {
+                // Clean up state names
+                const cleanState = state.replace(/\n/g, ' ').trim();
+                const option = document.createElement('option');
+                option.value = state;
+                option.textContent = cleanState;
+                stateFilter.appendChild(option);
+            });
+        }
+
+        function addMarkers(data) {
+            // Clear existing markers
+            if (markerCluster) {
+                markerCluster.clearMarkers();
+            }
+            markers.forEach(marker => marker.setMap(null));
+            markers = [];
+
+            // Define marker icons
+            const markerIcons = {
+                'PPR': 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                'Apartment': 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+                'Taman/Others': 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
+                'Perumahan Awam': 'http://maps.google.com/mapfiles/ms/icons/orange-dot.png'
+            };
+
+            data.forEach((project, index) => {
+                if (project.lat && project.lng) {
+                    const marker = new google.maps.Marker({
+                        position: {lat: project.lat, lng: project.lng},
+                        title: project.project_name,
+                        icon: markerIcons[project.type] || markerIcons['Taman/Others'],
+                        projectType: project.type,
+                        projectState: project.state,
+                        projectData: project,
+                        id: index
+                    });
+
+                    // Add click listener for info window
+                    marker.addListener('click', () => {
+                        showInfoWindow(marker, project);
+                    });
+
+                    markers.push(marker);
+                }
+            });
+
+            // Create marker clusterer
+            markerCluster = new MarkerClusterer(map, markers, {
+                imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m',
+                gridSize: 50,
+                maxZoom: 15
+            });
+        }
+
+        function showInfoWindow(marker, project) {
+            // Format confidence display
+            const confidenceColors = {
+                'high': '#4CAF50',
+                'medium': '#FFA500',
+                'low': '#FF5722'
+            };
+            
+            const confidenceStyle = `color: ${confidenceColors[project.confidence] || '#666'}; font-weight: bold;`;
+            
+            const content = `
+                <div class="info-window">
+                    <h3>${project.project_name}</h3>
+                    <span class="type-badge type-${project.type.toLowerCase().replace('/', '-').replace(' ', '-')}">${project.type}</span>
+                    <p><strong>State:</strong> ${project.state.replace(/\n/g, ' ')}</p>
+                    <p><strong>Status:</strong> ${project.status || 'Unknown'}</p>
+                    <p><strong>Confidence:</strong> <span style="${confidenceStyle}">${project.confidence || 'Manual'}</span></p>
+                    <p><strong>Address:</strong><br>${project.formatted_address || 'Not available'}</p>
+                    <p><strong>Coordinates:</strong><br>Lat: ${project.lat.toFixed(6)}, Lng: ${project.lng.toFixed(6)}</p>
+                </div>
+            `;
+            
+            infoWindow.setContent(content);
+            infoWindow.open(map, marker);
+        }
+
+        function filterMarkers(type) {
+            const button = event.target;
+            
+            if (type === 'all') {
+                // Toggle all filters
+                const showAll = activeTypeFilters.length === 0;
+                
+                if (showAll) {
+                    activeTypeFilters = ['PPR', 'Apartment', 'Taman/Others', 'Perumahan Awam'];
+                    document.querySelectorAll('.filter-btn').forEach(btn => {
+                        if (btn.textContent !== 'All') {
+                            btn.classList.remove('inactive');
+                            btn.classList.add('active');
+                        }
+                    });
+                    button.classList.add('active');
+                    button.classList.remove('inactive');
+                } else {
+                    activeTypeFilters = [];
+                    document.querySelectorAll('.filter-btn').forEach(btn => {
+                        if (btn.textContent !== 'All') {
+                            btn.classList.remove('active');
+                            btn.classList.add('inactive');
+                        }
+                    });
+                    button.classList.remove('active');
+                    button.classList.add('inactive');
+                }
+            } else {
+                // Toggle individual filter
+                if (button.classList.contains('active')) {
+                    button.classList.remove('active');
+                    button.classList.add('inactive');
+                    activeTypeFilters = activeTypeFilters.filter(f => f !== type);
+                } else {
+                    button.classList.remove('inactive');
+                    button.classList.add('active');
+                    activeTypeFilters.push(type);
+                }
+                
+                // Update "All" button status
+                const allButton = document.querySelector('.filter-btn');
+                if (activeTypeFilters.length === 4) {
+                    allButton.classList.remove('inactive');
+                    allButton.classList.add('active');
+                } else {
+                    allButton.classList.remove('active');
+                    allButton.classList.add('inactive');
+                }
+            }
+            
+            applyFilters();
+        }
+
+        function filterByState() {
+            activeStateFilter = document.getElementById('state-filter').value;
+            applyFilters();
+        }
+
+        function applyFilters() {
+            markers.forEach(marker => {
+                const typeMatch = activeTypeFilters.includes(marker.projectType);
+                const stateMatch = activeStateFilter === 'all' || marker.projectState === activeStateFilter;
+                const isVisible = typeMatch && stateMatch;
+                
+                marker.setVisible(isVisible);
+            });
+            
+            // Update cluster
+            if (markerCluster) {
+                markerCluster.repaint();
+            }
+            
+            updateStats();
+        }
+
+        function updateStats() {
+            const total = markers.length;
+            const visible = markers.filter(m => m.getVisible()).length;
+            
+            document.getElementById('total-count').textContent = total;
+            document.getElementById('visible-count').textContent = visible;
+        }
+
+        function searchProjects(event) {
+            const searchTerm = event.target.value.toLowerCase();
+            
+            if (event.key === 'Enter' && searchTerm) {
+                // Find matching projects
+                const matches = markers.filter(marker => 
+                    marker.projectData.project_name.toLowerCase().includes(searchTerm)
+                );
+                
+                if (matches.length > 0) {
+                    // Zoom to the first match
+                    const firstMatch = matches[0];
+                    map.setCenter(firstMatch.getPosition());
+                    map.setZoom(15);
+                    
+                    // Show info window
+                    showInfoWindow(firstMatch, firstMatch.projectData);
+                    
+                    // Highlight all matches
+                    markers.forEach(marker => {
+                        const isMatch = marker.projectData.project_name.toLowerCase().includes(searchTerm);
+                        marker.setVisible(isMatch);
+                    });
+                    
+                    updateStats();
+                }
+            } else if (searchTerm === '') {
+                // Reset filters when search is cleared
+                applyFilters();
+            }
+        }
+    </script>
+    
+    <!-- Replace YOUR_API_KEY with your actual API key -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBU1rf1Z2Pbi2yyjL2CK6kycp-RycWgCoM&callback=initMap" async defer></script>
+    <script src="https://unpkg.com/@googlemaps/markerclustererplus/dist/index.min.js"></script>
+</body>
+</html>
