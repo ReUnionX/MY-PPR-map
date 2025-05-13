@@ -210,6 +210,15 @@
             map.panTo(stateCoord);
         }
 
+        // Function to get color based on project count (similar to earthquake map)
+        function getColorByCount(count) {
+            if (count >= 30) return '#FFC107'; // Yellow for high count
+            if (count >= 15) return '#4169E1'; // Royal Blue for medium-high
+            if (count >= 10) return '#1E90FF'; // Dodger Blue for medium
+            if (count >= 5) return '#4682B4'; // Steel Blue for low-medium
+            return '#87CEEB'; // Sky Blue for low
+        }
+
         // Function to create state-level markers
         function createStateMarkers(data) {
             // Group projects by state
@@ -235,22 +244,29 @@
                     position = {lat: avgLat, lng: avgLng};
                 }
 
+                // Create a yellow circle with gradient effect similar to earthquake map
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60">
+                        <defs>
+                            <radialGradient id="grad${state}" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" style="stop-color:#FFC107;stop-opacity:0.9"/>
+                                <stop offset="60%" style="stop-color:#FFC107;stop-opacity:0.7"/>
+                                <stop offset="100%" style="stop-color:#FFC107;stop-opacity:0.1"/>
+                            </radialGradient>
+                        </defs>
+                        <circle cx="30" cy="30" r="25" fill="url(#grad${state})"/>
+                        <circle cx="30" cy="30" r="18" fill="#FFC107"/>
+                        <text x="30" y="36" font-size="16" font-weight="bold" text-anchor="middle" fill="black">${count}</text>
+                    </svg>
+                `;
+
                 const marker = new google.maps.Marker({
                     position: position,
                     map: null,
                     icon: {
-                        path: google.maps.SymbolPath.CIRCLE,
-                        fillColor: '#FFC107',
-                        fillOpacity: 1,
-                        strokeColor: 'white',
-                        strokeWeight: 3,
-                        scale: 28
-                    },
-                    label: {
-                        text: count.toString(),
-                        fontWeight: 'bold',
-                        fontSize: '18px',
-                        color: 'black'
+                        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+                        scaledSize: new google.maps.Size(60, 60),
+                        anchor: new google.maps.Point(30, 30)
                     },
                     title: `${state}: ${count} projects`,
                     state: state,
@@ -275,14 +291,7 @@
                     const marker = new google.maps.Marker({
                         position: {lat: project.lat, lng: project.lng},
                         title: project.project_name,
-                        icon: {
-                            path: google.maps.SymbolPath.CIRCLE,
-                            fillColor: '#FFC107',
-                            fillOpacity: 1,
-                            strokeColor: 'white',
-                            strokeWeight: 2,
-                            scale: 8
-                        },
+                        icon: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
                         projectType: project.type,
                         projectState: project.state,
                         projectData: project,
