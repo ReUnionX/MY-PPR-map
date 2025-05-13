@@ -219,7 +219,7 @@
             map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(legend);
 
             // Load project data - UPDATE THIS TO MATCH YOUR JSON FILENAME
-            fetch('updated_map_data')
+            fetch('updated_map_data,json')
                 .then(response => response.json())
                 .then(data => {
                     projectData = data;
